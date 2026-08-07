@@ -219,9 +219,17 @@ Recommended Railway environment variables:
 - `PORT` provided by Railway
 - `BIND_HOST=0.0.0.0`
 - `DATABASE_PATH=/data/agent_state.db` if using a mounted persistent volume
-- your normal Google OAuth and agent settings from `.env.example`
+- `GOOGLE_CREDENTIALS_JSON` or `GOOGLE_CREDENTIALS_JSON_B64`
+- `GOOGLE_TOKEN_JSON` or `GOOGLE_TOKEN_JSON_B64`
+- your normal non-secret agent settings from `.env.example`
 
 Railway will start the app in web mode and use `/healthz` for health checks.
+
+Important:
+
+- Railway is a non-interactive environment, so it cannot complete the local browser OAuth flow.
+- Generate your Google OAuth token locally first, then store the resulting `credentials.json` and `token.json` content in Railway variables as raw JSON or base64-encoded JSON.
+- If these variables are missing, the app now fails with a clear configuration error instead of a generic file-not-found stack trace.
 
 ---
 
@@ -285,7 +293,7 @@ pytest -q
 Targeted validation used for the production improvements:
 
 ```bash
-pytest -q tests/test_interview_extractor.py tests/test_workflow.py tests/test_dashboard.py
+pytest -q tests/test_interview_extractor.py tests/test_workflow.py tests/test_dashboard.py tests/test_google_auth.py
 python -m app.main --mode healthcheck
 ```
 
