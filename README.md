@@ -167,6 +167,7 @@ This serves:
 - `GET /healthz` - liveness/worker health
 - `GET /dashboard` - HTML review dashboard
 - `GET /api/dashboard` - JSON snapshot for ambiguous invites and failures
+- `POST /api/reprocess` - manually reprocess one Gmail message by `gmail_message_id`
 
 ### Healthcheck mode
 
@@ -221,6 +222,7 @@ Recommended Railway environment variables:
 - `DATABASE_PATH=/data/agent_state.db` if using a mounted persistent volume
 - `GOOGLE_CREDENTIALS_JSON` or `GOOGLE_CREDENTIALS_JSON_B64`
 - `GOOGLE_TOKEN_JSON` or `GOOGLE_TOKEN_JSON_B64`
+- `DASHBOARD_ADMIN_TOKEN` for protected manual reprocessing
 - your normal non-secret agent settings from `.env.example`
 
 Railway will start the app in web mode and use `/healthz` for health checks.
@@ -230,6 +232,17 @@ Important:
 - Railway is a non-interactive environment, so it cannot complete the local browser OAuth flow.
 - Generate your Google OAuth token locally first, then store the resulting `credentials.json` and `token.json` content in Railway variables as raw JSON or base64-encoded JSON.
 - If these variables are missing, the app now fails with a clear configuration error instead of a generic file-not-found stack trace.
+
+To manually retry an already-processed email after a parser fix or config fix:
+
+```bash
+curl -X POST "https://<your-railway-domain>/api/reprocess" \
+  -H "Content-Type: application/json" \
+  -H "X-Admin-Token: <your-dashboard-admin-token>" \
+  -d '{"gmail_message_id":"19fa0f67bce5a977"}'
+```
+
+This is useful when a message was previously marked `Processed-By-AI-Agent` or stored as `needs_review` before a fix was deployed.
 
 ---
 

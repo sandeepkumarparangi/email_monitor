@@ -7,7 +7,7 @@ from app.classifier import EmailClassifier
 from app.cloud_storage import LocalCloudStorageProvider
 from app.database import AgentDatabase
 from app.interview_extractor import InterviewExtractor
-from app.models import DownloadedAttachment, EmailMessageData
+from app.models import DownloadedAttachment, EmailMessageData, InterviewDetails
 from app.processor import EmailAutomationProcessor
 from tests.fakes import FakeCalendarService, FakeGmailService
 
@@ -124,3 +124,57 @@ def test_workflow_updates_existing_event_from_new_thread_via_ics(app_config):
     assert calendar.created_count == 1
     assert calendar.updated_count == 1
     assert calendar.events["evt-1"]["calendar_uid"] == "acme-uid-123"
+
+
+def test_reprocess_message_resets_processed_needs_review_and_schedules(app_config):
+    db = AgentDatabase(app_config.database_path)
+    db.initialize()
+
+    email = EmailMessageData(
+        gmail_message_id="oracle-1",
+        thread_id="thread-oracle",
+        sender="Oracle Talent Acquisition <ota-scheduling_ww@oracle.com>",
+        subject="Oracle Interview for the position 337023 Principal Software Engineer",
+        body=(
+            "We are pleased to confirm that your interview is scheduled for Mon, 10 Aug, 2026 at 02:30 PM America/Chicago.\n"
+            "Interview Duration 60 minutes\n"
+            "Click here to join the meeting: https://oracle.zoom.us/j/97556824486?pwd=abc\n"
+        ),
+        received_at=datetime(2026, 8, 7, 14, 0, tzinfo=ZoneInfo("America/Chicago")),
+        internal_date_ms=0,
+    )
+    gmail = FakeGmailService(emails={"oracle-1": email})
+    calendar = FakeCalendarService()
+    processor = EmailAutomationProcessor(
+        config=app_config,
+        db=db,
+        gmail_service=gmail,
+        classifier=EmailClassifier(),
+        extractor=InterviewExtractor(local_timezone=app_config.local_timezone),
+        calendar_service=calendar,
+        cloud_storage=LocalCloudStorageProvider(app_config.local_backup_dir),
+    )
+
+    db.upsert_email_received(email)
+    db.mark_processed("oracle-1", "Interview / Interview Invitation")
+    db.upsert_interview(
+        email=email,
+        details=InterviewDetails(
+            is_interview=True,
+            needs_review=True,
+            missing_fields=["job_title"],
+            action="schedule",
+            company="Oracle",
+            review_reason="Missing fields: job_title",
+        ),
+        status="needs_review",
+        calendar_event_id=None,
+        cloud_backup_path=None,
+    )
+
+    processor.reprocess_message("oracle-1")
+
+    assert db.is_processed("oracle-1")
+    assert calendar.created_count == 1
+    snapshot = db.get_dashboard_snapshot(limit=10)
+    assert snapshot["counts"]["needs_review_count"] == 0

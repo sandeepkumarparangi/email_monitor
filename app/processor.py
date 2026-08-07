@@ -55,6 +55,11 @@ class EmailAutomationProcessor:
                 LOGGER.exception("Message processing failed", extra={"gmail_message_id": message_id, "status": "failed"})
                 self.db.mark_failed(message_id, str(exc))
 
+    def reprocess_message(self, message_id: str) -> None:
+        self.gmail.ensure_labels(self._all_labels())
+        self.db.reset_message_for_reprocessing(message_id)
+        self._process_message(message_id)
+
     def _process_message(self, message_id: str) -> None:
         message = self.gmail.get_message(message_id)
         self.db.upsert_email_received(message)

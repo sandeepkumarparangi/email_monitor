@@ -141,13 +141,17 @@ class GmailService:
 
     @with_retry(retries=3)
     def apply_labels(self, message_id: str, label_names: List[str]) -> None:
-        label_ids = [self._label_name_to_id[name] for name in label_names if name in self._label_name_to_id]
-        if not label_ids:
+        desired_ids = {self._label_name_to_id[name] for name in label_names if name in self._label_name_to_id}
+        managed_ids = {self._label_name_to_id[name] for name in self._label_name_to_id}
+        if not desired_ids and not managed_ids:
             return
         self.client.users().messages().modify(
             userId="me",
             id=message_id,
-            body={"addLabelIds": label_ids, "removeLabelIds": []},
+            body={
+                "addLabelIds": sorted(desired_ids),
+                "removeLabelIds": sorted(managed_ids - desired_ids),
+            },
         ).execute()
 
     @with_retry(retries=3)
