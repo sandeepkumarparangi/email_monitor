@@ -1,0 +1,13 @@
+.env
+credentials.json
+token.json
+*.db
+*.sqlite
+*.sqlite3
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
+logs/
+backup/
+

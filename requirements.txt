@@ -1,0 +1,9 @@
+google-api-python-client==2.178.0
+google-auth==2.40.3
+google-auth-oauthlib==1.2.2
+python-dotenv==1.1.1
+python-dateutil==2.9.0.post0
+dateparser==1.2.2
+schedule==1.2.2
+pytest==8.4.1
+

@@ -1,0 +1,27 @@
+[
+  {
+    "gmail_message_id": "mock-1",
+    "thread_id": "thread-acme-1",
+    "sender": "Alice Recruiter <alice@acme.com>",
+    "subject": "Interview with Acme for Senior Backend Engineer",
+    "body": "Hi, we'd like to interview you on Tuesday at 2 PM CST. Join Zoom: https://zoom.us/j/12345",
+    "received_at": "2026-08-07T10:00:00-05:00"
+  },
+  {
+    "gmail_message_id": "mock-2",
+    "thread_id": "thread-beta-1",
+    "sender": "jobs@beta.com",
+    "subject": "Your application status update",
+    "body": "Thanks for applying. We are reviewing your profile.",
+    "received_at": "2026-08-07T11:00:00-05:00"
+  },
+  {
+    "gmail_message_id": "mock-3",
+    "thread_id": "thread-gamma-1",
+    "sender": "noreply@shop.com",
+    "subject": "Huge discount just for you!",
+    "body": "Sale ends tonight. Click here to unsubscribe.",
+    "received_at": "2026-08-07T12:00:00-05:00"
+  }
+]
+
