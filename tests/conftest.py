@@ -15,6 +15,7 @@ def app_config(tmp_path):
         bind_host="127.0.0.1",
         port=8000,
         dashboard_page_size=25,
+        dashboard_admin_token="test-token",
         local_timezone="America/Chicago",
         check_interval_minutes=5,
         log_level="INFO",

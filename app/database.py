@@ -1,11 +1,10 @@
 from __future__ import annotations
 
+from pathlib import Path
 import re
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
-from typing import Any, Iterator, Optional
-from pathlib import Path
 from typing import Any, Iterator, Optional
 
 from app.models import EmailMessageData, InterviewDetails
@@ -154,6 +153,19 @@ class AgentDatabase:
                 WHERE gmail_message_id = ?;
                 """,
                 (utc_now_iso(), category, gmail_message_id),
+            )
+
+    def reset_message_for_reprocessing(self, gmail_message_id: str) -> None:
+        with self._conn() as conn:
+            conn.execute(
+                """
+                UPDATE emails
+                SET processed_at = NULL,
+                    processing_status = 'pending',
+                    last_error = NULL
+                WHERE gmail_message_id = ?;
+                """,
+                (gmail_message_id,),
             )
 
     def mark_failed(self, gmail_message_id: str, error: str) -> None:

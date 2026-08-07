@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 from dotenv import load_dotenv
 
@@ -25,6 +25,7 @@ class AppConfig:
     bind_host: str
     port: int
     dashboard_page_size: int
+    dashboard_admin_token: Optional[str]
     local_timezone: str
     check_interval_minutes: int
     log_level: str
@@ -57,6 +58,7 @@ def load_config() -> AppConfig:
         bind_host=os.getenv("BIND_HOST", "0.0.0.0"),
         port=int(os.getenv("PORT", "8000")),
         dashboard_page_size=int(os.getenv("DASHBOARD_PAGE_SIZE", "25")),
+        dashboard_admin_token=os.getenv("DASHBOARD_ADMIN_TOKEN"),
         local_timezone=os.getenv("LOCAL_TIMEZONE", "America/Chicago"),
         check_interval_minutes=int(os.getenv("CHECK_INTERVAL_MINUTES", "5")),
         log_level=os.getenv("LOG_LEVEL", "INFO"),

@@ -78,6 +78,7 @@ def main() -> None:
     if mode == "web":
         serve_web_runtime(
             processor=processor,
+            app_config=config,
             bind_host=config.bind_host,
             port=config.port,
             dashboard_page_size=config.dashboard_page_size,
