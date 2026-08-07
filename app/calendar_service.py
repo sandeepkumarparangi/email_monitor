@@ -36,6 +36,16 @@ class CalendarService:
         return events[0] if events else None
 
     @with_retry(retries=3)
+    def find_by_calendar_uid(self, calendar_uid: str) -> Optional[dict]:
+        events = self.client.events().list(
+            calendarId=self.config.calendar_id,
+            privateExtendedProperty=f"calendar_uid={calendar_uid}",
+            maxResults=1,
+            singleEvents=True,
+        ).execute().get("items", [])
+        return events[0] if events else None
+
+    @with_retry(retries=3)
     def find_potential_duplicate(self, details: InterviewDetails) -> Optional[dict]:
         if not details.interview_start:
             return None
@@ -84,6 +94,12 @@ class CalendarService:
     def _build_event_body(self, details: InterviewDetails, email: EmailMessageData) -> dict:
         if not details.interview_start or not details.interview_end:
             raise ValueError("Interview start/end must exist before creating calendar event")
+        private_properties = {
+            "gmail_message_id": email.gmail_message_id,
+            "gmail_thread_id": email.thread_id,
+        }
+        if details.calendar_uid:
+            private_properties["calendar_uid"] = details.calendar_uid
         return {
             "summary": self._build_title(details),
             "description": self._build_description(details, email),
@@ -97,10 +113,7 @@ class CalendarService:
                 ],
             },
             "extendedProperties": {
-                "private": {
-                    "gmail_message_id": email.gmail_message_id,
-                    "gmail_thread_id": email.thread_id,
-                }
+                "private": private_properties
             },
         }
 

@@ -21,6 +21,10 @@ DEFAULT_DRIVE_SCOPES = [
 
 @dataclass(frozen=True)
 class AppConfig:
+    runtime_mode: str
+    bind_host: str
+    port: int
+    dashboard_page_size: int
     local_timezone: str
     check_interval_minutes: int
     log_level: str
@@ -49,6 +53,10 @@ def _bool_env(name: str, default: str = "false") -> bool:
 def load_config() -> AppConfig:
     load_dotenv()
     return AppConfig(
+        runtime_mode=os.getenv("APP_RUNTIME_MODE", "worker").strip().lower(),
+        bind_host=os.getenv("BIND_HOST", "0.0.0.0"),
+        port=int(os.getenv("PORT", "8000")),
+        dashboard_page_size=int(os.getenv("DASHBOARD_PAGE_SIZE", "25")),
         local_timezone=os.getenv("LOCAL_TIMEZONE", "America/Chicago"),
         check_interval_minutes=int(os.getenv("CHECK_INTERVAL_MINUTES", "5")),
         log_level=os.getenv("LOG_LEVEL", "INFO"),

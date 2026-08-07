@@ -1,0 +1,6 @@
+[deploy]
+startCommand = "bash ./scripts/start_railway.sh"
+healthcheckPath = "/healthz"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
