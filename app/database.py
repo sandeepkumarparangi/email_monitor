@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import os
 import sqlite3
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Iterator, Optional
 
 from app.models import ClassificationResult, EmailMessageData, InterviewDetails
@@ -16,6 +18,8 @@ def utc_now_iso() -> str:
 class AgentDatabase:
     def __init__(self, db_path: str) -> None:
         self.db_path = db_path
+        # Auto-create parent directory (needed for Railway volumes like /data)
+        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
 
     @contextmanager
     def _conn(self) -> Iterator[sqlite3.Connection]:
