@@ -5,6 +5,8 @@ import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Any, Iterator, Optional
+from pathlib import Path
+from typing import Any, Iterator, Optional
 
 from app.models import EmailMessageData, InterviewDetails
 
@@ -26,6 +28,8 @@ def normalize_subject(subject: str) -> str:
 class AgentDatabase:
     def __init__(self, db_path: str) -> None:
         self.db_path = db_path
+        # Auto-create parent directory (needed for Railway volumes like /data)
+        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
 
     @contextmanager
     def _conn(self) -> Iterator[sqlite3.Connection]:

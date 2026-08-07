@@ -44,9 +44,13 @@ class GmailService:
 
     @with_retry(retries=3)
     def list_message_ids(self) -> List[str]:
+        # Exclude already-processed messages using the marker label so Railway DB resets don't reprocess
+        query = self.config.gmail_query
+        if self.config.processed_marker_label in self._label_name_to_id:
+            query = f"{query} -label:{self.config.processed_marker_label.replace(' ', '-')}"
         result = self.client.users().messages().list(
             userId="me",
-            q=self.config.gmail_query,
+            q=query,
             maxResults=self.config.gmail_max_results,
         ).execute()
         return [item["id"] for item in result.get("messages", [])]
@@ -77,16 +81,37 @@ class GmailService:
         )
 
     def _extract_body(self, payload: dict) -> str:
+        # Prefer plain text
         if payload.get("mimeType") == "text/plain" and payload.get("body", {}).get("data"):
             return self._decode(payload["body"]["data"])
         for part in payload.get("parts", []):
             if part.get("mimeType") == "text/plain" and part.get("body", {}).get("data"):
                 return self._decode(part["body"]["data"])
+        # Fall back to HTML stripped of tags
+        if payload.get("mimeType") == "text/html" and payload.get("body", {}).get("data"):
+            return self._strip_html(self._decode(payload["body"]["data"]))
+        for part in payload.get("parts", []):
+            if part.get("mimeType") == "text/html" and part.get("body", {}).get("data"):
+                return self._strip_html(self._decode(part["body"]["data"]))
         for part in payload.get("parts", []):
             nested = self._extract_body(part)
             if nested:
                 return nested
         return ""
+
+    @staticmethod
+    def _strip_html(html: str) -> str:
+        import re as _re
+        text = _re.sub(r"<style[^>]*>.*?</style>", " ", html, flags=_re.S | _re.I)
+        text = _re.sub(r"<script[^>]*>.*?</script>", " ", text, flags=_re.S | _re.I)
+        text = _re.sub(r"<[^>]+>", " ", text)
+        text = _re.sub(r"&nbsp;", " ", text)
+        text = _re.sub(r"&amp;", "&", text)
+        text = _re.sub(r"&lt;", "<", text)
+        text = _re.sub(r"&gt;", ">", text)
+        text = _re.sub(r"[ \t]{2,}", " ", text)
+        text = _re.sub(r"\n{3,}", "\n\n", text)
+        return text.strip()
 
     def _extract_attachment_meta(self, payload: dict) -> List[AttachmentMeta]:
         results: List[AttachmentMeta] = []
