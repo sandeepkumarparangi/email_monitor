@@ -441,8 +441,16 @@ class InterviewExtractor:
 
     @staticmethod
     def _extract_job_title(text: str) -> Optional[str]:
-        match = re.search(r"(?:for|role of|position|candidate for)\s+([A-Z][A-Za-z0-9/ \-]+?)(?:[,\.\n]| via\b| at\b|$)", text)
-        return match.group(1).strip().rstrip(".") if match else None
+        patterns = [
+            r"for\s+(?:the\s+)?(?:position|job id|requisition)\s+(?:\d+\s+[-:]?\s*)?([A-Z][A-Za-z0-9/ \-]+?)(?:[,\.\n]| via\b| at\b|$)",
+            r"(?:position|job id|requisition)\s+(?:\d+\s+[-:]?\s*)?([A-Z][A-Za-z0-9/ \-]+?)(?:[,\.\n]| via\b| at\b|$)",
+            r"(?:for|role of|candidate for)\s+([A-Z][A-Za-z0-9/ \-]+?)(?:[,\.\n]| via\b| at\b|$)",
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, text, re.I)
+            if match:
+                return match.group(1).strip().rstrip(".")
+        return None
 
     @staticmethod
     def _extract_email(text: str) -> Optional[str]:

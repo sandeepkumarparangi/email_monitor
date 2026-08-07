@@ -93,3 +93,34 @@ def test_interview_extractor_parses_ics_attachment():
     assert details.interview_start is not None
     assert details.interview_start.hour == 13
     assert details.meeting_link == "https://zoom.us/j/123"
+
+
+def test_interview_extractor_parses_oracle_position_with_requisition_number():
+    extractor = InterviewExtractor(local_timezone="America/Chicago")
+    email = EmailMessageData(
+        gmail_message_id="msg-4",
+        thread_id="thread-4",
+        sender="Oracle Talent Acquisition <ota-scheduling_ww@oracle.com>",
+        subject="Oracle Interview for the position 337023 Principal Software Engineer",
+        body=(
+            "We are pleased to confirm that your interview is scheduled for Mon, 10 Aug, 2026 at 02:30 PM America/Chicago.\n"
+            "Thank you,\n"
+            "Oracle Talent Acquisition\n"
+            "Principal Software Engineer\n"
+            "Interview Time 02:30 PM America/Chicago\n"
+            "Interview Duration 60 minutes\n"
+            "Click here to join the meeting: https://oracle.zoom.us/j/97556824486?pwd=abc\n"
+        ),
+        received_at=datetime(2026, 8, 7, 14, 0, tzinfo=ZoneInfo("America/Chicago")),
+        internal_date_ms=0,
+    )
+
+    details = extractor.extract(email)
+
+    assert details.is_interview
+    assert not details.needs_review
+    assert details.company == "Oracle"
+    assert details.job_title == "Principal Software Engineer"
+    assert details.interview_start is not None
+    assert details.interview_end is not None
+    assert details.interview_type == "Zoom"
