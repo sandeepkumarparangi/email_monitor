@@ -1,13 +1,15 @@
 .env
 credentials.json
+credentials*.json
 token.json
+token*.json
 *.db
 *.sqlite
 *.sqlite3
 __pycache__/
 *.pyc
 .pytest_cache/
+.venv/
 .DS_Store
 logs/
 backup/
-

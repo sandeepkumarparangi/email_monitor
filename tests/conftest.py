@@ -11,6 +11,10 @@ from app.config import AppConfig
 @pytest.fixture
 def app_config(tmp_path):
     return AppConfig(
+        runtime_mode="worker",
+        bind_host="127.0.0.1",
+        port=8000,
+        dashboard_page_size=25,
         local_timezone="America/Chicago",
         check_interval_minutes=5,
         log_level="INFO",
@@ -35,4 +39,3 @@ def app_config(tmp_path):
 
 def sample_received_dt() -> datetime:
     return datetime(2026, 8, 7, 10, 0, tzinfo=ZoneInfo("America/Chicago"))
-

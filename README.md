@@ -7,7 +7,7 @@ Automates:
 3. Interview extraction (date/time/timezone/link/instructions/recruiter)
 4. Google Calendar create/update with duplicate prevention
 5. Interview backup records + attachment backup (Google Drive or local provider)
-6. SQLite idempotency and processing state
+6. SQLite idempotency, processing state, and review dashboard data
 
 ---
 
@@ -140,15 +140,51 @@ Idempotency:
 
 ---
 
-## 7) Run the Agent
+## 7) Runtime Modes
+
+The agent supports three runtime modes:
+
+- `worker` - default long-running Gmail poller
+- `web` - Railway-friendly mode with the worker plus a lightweight HTTP server
+- `healthcheck` - one-shot startup/DB readiness check
+
+Set `APP_RUNTIME_MODE` in `.env` or pass `--mode`.
+
+### Worker mode
+
+```bash
+python -m app.main --mode worker
+```
+
+### Web mode
+
+```bash
+python -m app.main --mode web
+```
+
+This serves:
+
+- `GET /healthz` - liveness/worker health
+- `GET /dashboard` - HTML review dashboard
+- `GET /api/dashboard` - JSON snapshot for ambiguous invites and failures
+
+### Healthcheck mode
+
+```bash
+python -m app.main --mode healthcheck
+```
+
+---
+
+## 8) Run the Agent Locally
 
 Start:
 
 ```bash
-python -m app.main
+python -m app.main --mode worker
 ```
 
-This runs continuously and checks Gmail every `CHECK_INTERVAL_MINUTES` (default 5).
+This runs continuously and checks Gmail every `CHECK_INTERVAL_MINUTES` (default 5). For local dashboard access, use `--mode web`.
 
 Stop:
 
@@ -169,7 +205,27 @@ kill <PID>
 
 ---
 
-## 8) Run as a macOS launchd Service (Auto-start)
+## 9) Railway Deployment
+
+This repo now includes Railway-ready files:
+
+- [Procfile](/Users/sandeepkumarparangi/Projects/ai-email-agent.worktrees/ai-email-agent-prod-improvements/Procfile)
+- [railway.toml](/Users/sandeepkumarparangi/Projects/ai-email-agent.worktrees/ai-email-agent-prod-improvements/railway.toml)
+- [scripts/start_railway.sh](/Users/sandeepkumarparangi/Projects/ai-email-agent.worktrees/ai-email-agent-prod-improvements/scripts/start_railway.sh)
+
+Recommended Railway environment variables:
+
+- `APP_RUNTIME_MODE=web`
+- `PORT` provided by Railway
+- `BIND_HOST=0.0.0.0`
+- `DATABASE_PATH=/data/agent_state.db` if using a mounted persistent volume
+- your normal Google OAuth and agent settings from `.env.example`
+
+Railway will start the app in web mode and use `/healthz` for health checks.
+
+---
+
+## 10) Run as a macOS launchd Service (Auto-start)
 
 From the project root:
 
@@ -207,12 +263,30 @@ Note: if you previously uninstalled the service, the installer re-enables the la
 
 ---
 
-## 9) Testing Instructions
+## 11) Interview Extraction and Update Handling
+
+The processor now handles more production scheduling cases:
+
+- parses inline or attached `.ics` invites when present
+- uses ICS `UID` and `SEQUENCE` to identify updates/reschedules
+- matches follow-up messages across thread changes using thread ID, meeting link, calendar UID, and normalized subject
+- treats availability requests and incomplete invites as review items instead of creating weak calendar events
+
+---
+
+## 12) Testing Instructions
 
 Install dependencies first, then:
 
 ```bash
 pytest -q
+```
+
+Targeted validation used for the production improvements:
+
+```bash
+pytest -q tests/test_interview_extractor.py tests/test_workflow.py tests/test_dashboard.py
+python -m app.main --mode healthcheck
 ```
 
 Included tests:
@@ -237,14 +311,16 @@ This uses `tests/mock_emails.json` and fake Gmail/Calendar services.
 
 ---
 
-## 10) Reliability and Safety Features
+## 13) Reliability and Safety Features
 
 - Structured JSON logging
 - Retry with exponential backoff for API operations
 - OAuth token refresh via Google auth client
 - Duplicate prevention via DB + calendar checks + thread update logic
+- ICS-aware update detection using calendar UID / sequence
 - Interview ambiguity handling:
   - labels as `Interview - Needs Review`
+  - dashboard surfacing for ambiguous invites and failures
   - no calendar event created when critical data missing
 - Attachment filename sanitization
 - No attachment execution
@@ -252,7 +328,7 @@ This uses `tests/mock_emails.json` and fake Gmail/Calendar services.
 
 ---
 
-## 11) Troubleshooting Guide
+## 14) Troubleshooting Guide
 
 ### OAuth errors
 - Confirm `credentials.json` is valid Desktop OAuth client.
@@ -266,6 +342,12 @@ This uses `tests/mock_emails.json` and fake Gmail/Calendar services.
 ### Calendar duplicates
 - Check if meeting URL/company changed significantly.
 - Verify thread continuity in Gmail (same thread ID for updates).
+- If the recruiter sends a new thread, confirm the invite includes the same meeting link or ICS UID.
+
+### Railway healthcheck / dashboard issues
+- Confirm `APP_RUNTIME_MODE=web`.
+- Confirm Railway can reach `PORT` on `BIND_HOST=0.0.0.0`.
+- Check `/healthz` and `/api/dashboard`.
 
 ### Drive upload failures
 - Confirm Drive API enabled and `drive.file` scope granted.
@@ -277,10 +359,10 @@ This uses `tests/mock_emails.json` and fake Gmail/Calendar services.
 
 ---
 
-## 12) Security Notes
+## 15) Security Notes
 
 - Never hardcode credentials.
-- `.env`, `credentials.json`, `token.json`, and DB files are git-ignored.
+- `.env`, `credentials*.json`, `token*.json`, local DB files, and `.venv/` are git-ignored.
 - Least-privilege OAuth scopes only.
 - No email sending unless explicitly added later.
 - No attachment execution.

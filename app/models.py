@@ -11,6 +11,7 @@ class AttachmentMeta:
     mime_type: str
     attachment_id: str
     size: int = 0
+    inline_content: Optional[bytes] = None
 
 
 @dataclass
@@ -44,6 +45,7 @@ class InterviewDetails:
     is_interview: bool
     needs_review: bool
     missing_fields: List[str]
+    action: str = "schedule"
     company: Optional[str] = None
     job_title: Optional[str] = None
     recruiter: Optional[str] = None
@@ -56,5 +58,9 @@ class InterviewDetails:
     phone_number: Optional[str] = None
     location: Optional[str] = None
     instructions: Optional[str] = None
+    review_reason: Optional[str] = None
+    update_detected: bool = False
+    calendar_uid: Optional[str] = None
+    calendar_method: Optional[str] = None
+    source_kind: Optional[str] = None
     source_snippet: Optional[str] = None
-

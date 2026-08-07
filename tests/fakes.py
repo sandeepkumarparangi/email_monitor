@@ -33,6 +33,7 @@ class FakeCalendarService:
     def __init__(self):
         self.events: Dict[str, dict] = {}
         self.by_message_id: Dict[str, str] = {}
+        self.by_calendar_uid: Dict[str, str] = {}
         self.created_count = 0
         self.updated_count = 0
 
@@ -46,16 +47,31 @@ class FakeCalendarService:
                 return event
         return None
 
+    def find_by_calendar_uid(self, calendar_uid: str) -> Optional[dict]:
+        event_id = self.by_calendar_uid.get(calendar_uid)
+        return self.events.get(event_id) if event_id else None
+
     def create_event(self, details: InterviewDetails, email: EmailMessageData) -> str:
         self.created_count += 1
         event_id = f"evt-{self.created_count}"
-        self.events[event_id] = {"id": event_id, "meeting_link": details.meeting_link}
+        self.events[event_id] = {
+            "id": event_id,
+            "meeting_link": details.meeting_link,
+            "calendar_uid": details.calendar_uid,
+        }
         self.by_message_id[email.gmail_message_id] = event_id
+        if details.calendar_uid:
+            self.by_calendar_uid[details.calendar_uid] = event_id
         return event_id
 
     def update_event(self, event_id: str, details: InterviewDetails, email: EmailMessageData) -> str:
         self.updated_count += 1
-        self.events[event_id] = {"id": event_id, "meeting_link": details.meeting_link}
+        self.events[event_id] = {
+            "id": event_id,
+            "meeting_link": details.meeting_link,
+            "calendar_uid": details.calendar_uid,
+        }
         self.by_message_id[email.gmail_message_id] = event_id
+        if details.calendar_uid:
+            self.by_calendar_uid[details.calendar_uid] = event_id
         return event_id
-

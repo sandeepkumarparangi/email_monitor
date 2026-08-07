@@ -93,13 +93,18 @@ class GmailService:
         for part in payload.get("parts", []):
             filename = part.get("filename", "")
             body = part.get("body", {})
-            if filename and body.get("attachmentId"):
+            inline_content = None
+            if body.get("data"):
+                inline_content = base64.urlsafe_b64decode(body["data"].encode("utf-8"))
+            is_calendar_part = part.get("mimeType") == "text/calendar"
+            if (filename and (body.get("attachmentId") or inline_content)) or (is_calendar_part and inline_content):
                 results.append(
                     AttachmentMeta(
-                        filename=filename,
+                        filename=filename or "invite.ics",
                         mime_type=part.get("mimeType", "application/octet-stream"),
-                        attachment_id=body["attachmentId"],
+                        attachment_id=body.get("attachmentId", ""),
                         size=int(body.get("size", 0)),
+                        inline_content=inline_content,
                     )
                 )
             results.extend(self._extract_attachment_meta(part))
@@ -124,6 +129,15 @@ class GmailService:
     def download_attachments(self, message: EmailMessageData) -> List[DownloadedAttachment]:
         results: List[DownloadedAttachment] = []
         for attachment in message.attachments:
+            if attachment.inline_content is not None:
+                results.append(
+                    DownloadedAttachment(
+                        filename=attachment.filename,
+                        mime_type=attachment.mime_type,
+                        content=attachment.inline_content,
+                    )
+                )
+                continue
             response = self.client.users().messages().attachments().get(
                 userId="me",
                 messageId=message.gmail_message_id,
